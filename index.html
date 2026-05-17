@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-5J1FM18QT4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-5J1FM18QT4');
+</script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Georgia Night Sky Guide — riktom.com</title>
+  <meta name="description" content="Real-time night sky planner for Georgia stargazers, night fishermen, and campers. Sky map with planets and constellations, moon phase, meteor showers, weather, and a tonight-only Go/No Go visibility score for Georgia dark-sky locations.">
+  <link rel="stylesheet" href="css/style.css?v=1">
+
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2646745084546998" crossorigin="anonymous"></script>
+  <script async src="https://fundingchoicesmessages.google.com/i/pub-2646745084546998?ers=1"></script>
+  <script>(function(){function signalGooglefcPresent(){if(!window.frames['googlefcPresent']){if(document.body){const i=document.createElement('iframe');i.style='width:0;height:0;border:none;z-index:-1000;left:-1000px;top:-1000px;';i.style.display='none';i.name='googlefcPresent';document.body.appendChild(i);}else{setTimeout(signalGooglefcPresent,0);}}}signalGooglefcPresent();})();</script>
+</head>
+<body>
+
+<nav>
+  <a href="https://riktom.com" class="logo">rik<span>tom</span>.com</a>
+  <ul>
+    <li><a href="https://riktom.com">Home</a></li>
+    <li><a href="https://riktom.com/about.html">About</a></li>
+    <li><a href="https://riktom.com/articles/">Articles</a></li>
+    <li class="nav-dropdown">
+      <a href="https://riktom.com/#apps">Apps</a>
+      <div class="dropdown-menu">
+        <a href="https://river.riktom.com" target="_blank" rel="noopener"><span class="dd-icon">🎣</span>RiverWatch</a>
+        <a href="https://fire.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">🔥</span>Fire Watcher</a>
+        <a href="https://forecast.riktom.com" target="_blank" rel="noopener"><span class="dd-icon">🌤️</span>Hunt &amp; Fish Forecast</a>
+        <a href="https://hunt.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">🦌</span>Hunting Season Tracker</a>
+        <a href="https://trucks.riktom.com" target="_blank" rel="noopener"><span class="dd-icon">🚛</span>Truck Finder</a>
+        <a href="https://burn.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">🔥</span>Burn Permit Checker</a>
+        <a href="https://ramps.riktom.com" target="_blank" rel="noopener"><span class="dd-icon">⚓</span>Ramp Radar</a>
+        <a href="https://tips.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">⛺</span>Field Reports</a>
+        <a href="https://deer.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">🦌</span>Deer Radar</a>
+        <a href="https://dash.riktom.com"  target="_blank" rel="noopener"><span class="dd-icon">🎯</span>Trip Planner</a>
+        <a href="https://sky.riktom.com"   target="_blank" rel="noopener"><span class="dd-icon">🌌</span>Night Sky</a>
+      </div>
+    </li>
+    <li><a href="https://riktom.com/suggest.html" style="color:#fff;font-weight:600;">💡 Suggest an Idea</a></li>
+  </ul>
+</nav>
+
+<!-- Control Bar -->
+<div class="ctrl-bar">
+  <div class="ctrl-left">
+    <select id="loc-select" aria-label="Select location"></select>
+    <button id="gps-btn" class="btn-ghost">📍 GPS</button>
+  </div>
+  <div class="mode-tabs" role="tablist" aria-label="Viewing mode">
+    <button class="mode-btn active" data-mode="sky">🔭 Skywatch</button>
+    <button class="mode-btn" data-mode="fish">🎣 Night Fish</button>
+    <button class="mode-btn" data-mode="camp">🔥 Campfire</button>
+  </div>
+  <div class="ctrl-right">
+    <button id="refresh-btn" class="btn-ghost" title="Refresh">↻</button>
+  </div>
+</div>
+
+<!-- Location Title -->
+<div class="loc-header">
+  <h1 id="loc-name" class="loc-name">—</h1>
+  <div class="loc-meta-row">
+    <span id="loc-meta" class="loc-meta"></span>
+    <span id="last-updated" class="last-updated"></span>
+  </div>
+</div>
+
+<!-- Cards Grid -->
+<div class="dash-grid">
+  <div class="card card-full card-hero" id="score-card"></div>
+  <div class="card" id="schedule-card"></div>
+  <div class="card" id="moon-card"></div>
+  <div class="card" id="weather-card"></div>
+  <div class="card" id="planets-card"></div>
+  <div class="card card-full sky-card" id="skymap-card">
+    <div class="card-title sky-title">🌌 Sky Map — Live Now</div>
+    <canvas id="skymap" aria-label="Current sky view from your location"></canvas>
+    <div class="sky-legend">
+      <span><span class="dot moon-dot"></span>Moon</span>
+      <span><span class="dot sun-dot"></span>Sun</span>
+      <span><span class="dot venus-dot"></span>Planets</span>
+      <span><span class="dot star-dot"></span>Stars</span>
+      <span class="muted">Edge = horizon · Center = zenith · N at top, E at left</span>
+    </div>
+  </div>
+  <div class="card card-full" id="meteors-card"></div>
+  <div class="card card-full" id="darksky-card"></div>
+</div>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<footer>
+  <div class="footer-links">
+    <a href="https://riktom.com">Home</a>
+    <a href="https://riktom.com/about.html">About</a>
+    <a href="https://riktom.com/articles/">Articles</a>
+    <a href="https://riktom.com/privacy.html">Privacy Policy</a>
+  </div>
+  <p>&copy; 2026 riktom.com &mdash; Hahira, Georgia</p>
+</footer>
+
+<script src="js/astro.js?v=1"></script>
+<script src="js/app.js?v=1"></script>
+</body>
+</html>

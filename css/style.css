@@ -1,0 +1,278 @@
+/* ─── RESET & VARIABLES ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --green-dark:  #1b5e20;
+  --green:       #2e7d32;
+  --green-light: #558b2f;
+  --night-bg:    #0c1424;
+  --card-bg:     #ffffff;
+  --card-dark:   #131e36;
+  --text:        #212121;
+  --text-muted:  #666;
+  --border:      #e0e0e0;
+  --gold:        #f9a825;
+  --radius:      12px;
+  --shadow:      0 2px 8px rgba(0,0,0,.10);
+}
+html { font-size: 16px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: #f0f4f0;
+  color: var(--text);
+  min-height: 100vh;
+}
+
+/* ─── NAV ───────────────────────────────────────────────────────── */
+nav {
+  background: var(--green-dark);
+  padding: 0 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 1rem; min-height: 52px;
+  position: sticky; top: 0; z-index: 1000;
+}
+nav .logo { font-size: 1.4rem; font-weight: 900; color: #fff; text-decoration: none; letter-spacing: -0.5px; }
+nav .logo span { color: #a5d6a7; }
+nav ul { list-style: none; display: flex; align-items: center; gap: .25rem; flex-wrap: wrap; }
+nav ul li a { color: #c8e6c9; text-decoration: none; font-size: .9rem; padding: .4rem .6rem; border-radius: 6px; white-space: nowrap; transition: background .15s; }
+nav ul li a:hover { background: rgba(255,255,255,.12); color: #fff; }
+.nav-dropdown { position: relative; }
+.dropdown-menu {
+  display: none; position: absolute; top: 100%; right: 0;
+  background: #fff; border: 1px solid var(--border); border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0,0,0,.15); min-width: 200px; padding: .4rem 0; z-index: 2000;
+}
+.nav-dropdown:hover .dropdown-menu, .nav-dropdown:focus-within .dropdown-menu { display: block; }
+.dropdown-menu a { display: flex; align-items: center; gap: .5rem; padding: .55rem 1rem; color: var(--text); font-size: .9rem; }
+.dropdown-menu a:hover { background: #f5f5f5; }
+.dd-icon { font-size: 1rem; }
+
+/* ─── CONTROL BAR ───────────────────────────────────────────────── */
+.ctrl-bar {
+  background: linear-gradient(135deg, #1b1f3a 0%, #1b5e20 100%);
+  padding: .75rem 1.25rem;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: .75rem; flex-wrap: wrap;
+}
+.ctrl-left, .ctrl-right { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+#loc-select {
+  padding: .45rem .75rem; border: none; border-radius: 8px;
+  font-size: .92rem; background: rgba(255,255,255,.95); color: var(--text);
+  min-width: 240px; cursor: pointer;
+}
+.btn-ghost {
+  padding: .42rem .85rem; border: 1.5px solid rgba(255,255,255,.55); border-radius: 8px;
+  background: transparent; color: #fff; font-size: .85rem; cursor: pointer;
+  transition: background .15s;
+}
+.btn-ghost:hover { background: rgba(255,255,255,.15); }
+
+.mode-tabs { display: flex; gap: .25rem; background: rgba(0,0,0,.25); border-radius: 10px; padding: .25rem; }
+.mode-btn {
+  padding: .4rem .85rem; border: none; border-radius: 7px; background: transparent;
+  color: rgba(255,255,255,.7); font-size: .85rem; font-weight: 600; cursor: pointer;
+  transition: all .15s;
+}
+.mode-btn:hover { color: #fff; }
+.mode-btn.active { background: rgba(255,255,255,.95); color: var(--green-dark); }
+
+/* ─── LOCATION HEADER ───────────────────────────────────────────── */
+.loc-header { padding: 1rem 1.25rem .25rem; }
+.loc-name { font-size: 1.35rem; font-weight: 800; color: var(--green-dark); line-height: 1.2; }
+.loc-meta-row { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; margin-top: .2rem; }
+.loc-meta, .last-updated { font-size: .82rem; color: var(--text-muted); }
+
+/* ─── GRID ──────────────────────────────────────────────────────── */
+.dash-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: .9rem;
+  padding: .9rem 1.25rem 1.5rem;
+}
+.card-full { grid-column: 1 / -1; }
+@media (min-width: 900px) {
+  .dash-grid { grid-template-columns: 1fr 1fr 1fr; }
+  #score-card    { grid-column: 1 / -1; }
+  #schedule-card { grid-column: 1; }
+  #moon-card     { grid-column: 2; }
+  #weather-card  { grid-column: 3; }
+  #planets-card  { grid-column: 1 / -1; }
+  #skymap-card   { grid-column: 1 / -1; }
+  #meteors-card  { grid-column: 1 / -1; }
+  #darksky-card  { grid-column: 1 / -1; }
+}
+
+/* ─── CARDS ─────────────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg); border-radius: var(--radius);
+  padding: 1.1rem 1.2rem; box-shadow: var(--shadow);
+  border: 1px solid var(--border); min-height: 110px;
+}
+.card-title {
+  font-size: .78rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .06em; color: var(--text-muted); margin-bottom: .75rem;
+}
+
+/* ─── HERO SCORE CARD ───────────────────────────────────────────── */
+.card-hero {
+  background: linear-gradient(135deg, #0c1424 0%, #1a3a5f 100%);
+  color: #fff; border: none;
+}
+.card-hero .card-title { color: rgba(255,255,255,.7); }
+.score-hero {
+  display: flex; align-items: center; gap: 1.25rem;
+  padding: .5rem 0 1rem; flex-wrap: wrap;
+}
+.score-ring {
+  font-size: 3.2rem; font-weight: 900; line-height: 1;
+  width: 110px; height: 110px; border-radius: 50%;
+  border: 6px solid; display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; background: rgba(0,0,0,.3);
+}
+.score-label { font-size: 1.6rem; font-weight: 900; letter-spacing: .04em; }
+.score-sub { font-size: .9rem; color: rgba(255,255,255,.75); margin-top: .2rem; }
+.factors {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .4rem;
+  margin-top: .75rem; padding-top: .75rem;
+  border-top: 1px solid rgba(255,255,255,.12);
+}
+.factor {
+  display: flex; align-items: center; gap: .5rem;
+  font-size: .82rem; padding: .35rem .6rem;
+  border-radius: 6px; background: rgba(255,255,255,.05);
+}
+.factor.pos { background: rgba(67,160,71,.18); }
+.factor.neg { background: rgba(229,57,53,.18); }
+.f-icon { font-size: 1rem; }
+.f-text { flex: 1; }
+.f-impact { font-weight: 700; font-size: .78rem; }
+.factor.pos .f-impact { color: #81c784; }
+.factor.neg .f-impact { color: #ef9a9a; }
+
+/* ─── SCHEDULE CARD ─────────────────────────────────────────────── */
+.sched-grid { display: flex; flex-direction: column; gap: .15rem; }
+.sched-row {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: .88rem; padding: .35rem .5rem; border-radius: 6px;
+}
+.sched-row.hl { background: #fffbf0; color: var(--gold); font-weight: 700; }
+.sched-row span:last-child { font-variant-numeric: tabular-nums; color: var(--text); }
+
+/* ─── MOON CARD ─────────────────────────────────────────────────── */
+.moon-main { display: flex; align-items: center; gap: 1rem; }
+.moon-icon { font-size: 3rem; }
+.moon-name { font-size: 1.1rem; font-weight: 700; color: var(--text); }
+.moon-illum { font-size: .9rem; color: var(--text-muted); margin-top: .15rem; }
+.moon-pos { font-size: .8rem; color: var(--text-muted); margin-top: .25rem; }
+
+/* ─── WEATHER CARD ──────────────────────────────────────────────── */
+.wx-temp { font-size: 1.7rem; font-weight: 800; line-height: 1.1; color: var(--text); }
+.wx-desc { font-size: .9rem; color: var(--text-muted); margin: .2rem 0 .5rem; }
+.wx-row {
+  display: flex; justify-content: space-between; font-size: .85rem;
+  padding: .2rem 0; border-top: 1px solid var(--border);
+}
+
+/* ─── PLANETS CARD ──────────────────────────────────────────────── */
+.planet-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: .5rem; }
+.planet-row {
+  display: flex; align-items: center; gap: .65rem; padding: .5rem .75rem;
+  background: #fafafa; border-radius: 8px; font-size: .88rem;
+}
+.planet-dot {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .85rem; font-weight: 700; color: rgba(0,0,0,.6);
+}
+.planet-name { font-weight: 600; flex: 1; }
+.planet-pos { font-size: .78rem; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+
+/* ─── SKY MAP CARD ──────────────────────────────────────────────── */
+.sky-card { background: #0c1424; color: #fff; border: none; padding: 1rem; }
+.sky-title { color: rgba(255,255,255,.7); }
+#skymap { display: block; width: 100%; height: auto; border-radius: 8px; }
+.sky-legend {
+  display: flex; flex-wrap: wrap; gap: 1rem;
+  font-size: .78rem; color: rgba(255,255,255,.75); margin-top: .6rem;
+  align-items: center;
+}
+.sky-legend .muted { color: rgba(255,255,255,.5); font-style: italic; flex: 1; text-align: right; min-width: 200px; }
+.dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  display: inline-block; margin-right: .25rem; vertical-align: middle;
+}
+.moon-dot  { background: #fff8e1; }
+.sun-dot   { background: #ffeb3b; }
+.venus-dot { background: #ffd54f; }
+.star-dot  { background: #fff; }
+
+/* ─── METEOR SHOWERS CARD ───────────────────────────────────────── */
+.meteor-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: .65rem;
+}
+.meteor-row {
+  padding: .7rem .85rem; background: #fafafa; border-radius: 8px;
+  border-left: 3px solid var(--gold);
+}
+.meteor-name { font-weight: 700; font-size: .95rem; color: var(--text); }
+.meteor-peak { font-size: .85rem; color: var(--gold); font-weight: 600; margin: .15rem 0; }
+.meteor-stats { font-size: .78rem; color: var(--text-muted); }
+.meteor-parent { margin-top: .25rem; }
+
+/* ─── DARK SKY LOCATIONS CARD ───────────────────────────────────── */
+.darksky-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: .65rem; }
+.darksky-row {
+  padding: .7rem .85rem; background: #fafafa; border-radius: 8px;
+  border: 1px solid var(--border); cursor: pointer; transition: all .15s;
+}
+.darksky-row:hover { background: #f0f4f0; border-color: var(--green); transform: translateY(-1px); }
+.darksky-head { display: flex; align-items: center; gap: .5rem; margin-bottom: .25rem; }
+.bortle-pill {
+  padding: .15rem .55rem; border-radius: 12px; font-size: .72rem; font-weight: 700;
+}
+.bortle-pill.b1, .bortle-pill.b2 { background: #1a237e; color: #fff; }
+.bortle-pill.b3, .bortle-pill.b4 { background: #4a148c; color: #fff; }
+.bortle-pill.b5, .bortle-pill.b6 { background: #f57f17; color: #fff; }
+.bortle-pill.b7, .bortle-pill.b8, .bortle-pill.b9 { background: #b71c1c; color: #fff; }
+.darksky-name { font-weight: 700; font-size: .92rem; color: var(--text); }
+.darksky-meta { font-size: .78rem; color: var(--text-muted); margin-bottom: .35rem; }
+.darksky-note { font-size: .82rem; color: var(--text); line-height: 1.45; }
+
+/* ─── HELPERS ──────────────────────────────────────────────────── */
+.muted { color: var(--text-muted); }
+.small { font-size: .75rem; }
+.skeleton-card {
+  background: linear-gradient(90deg, #e8e8e8 25%, #f4f4f4 50%, #e8e8e8 75%);
+  background-size: 200% 100%; animation: shimmer 1.4s infinite;
+  border-radius: 6px; height: 5rem;
+}
+@keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ─── TOAST ────────────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: #212121; color: #fff; padding: .6rem 1.4rem;
+  border-radius: 24px; font-size: .88rem; font-weight: 600;
+  z-index: 9999; transition: transform .3s ease; pointer-events: none;
+}
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* ─── FOOTER ───────────────────────────────────────────────────── */
+footer {
+  background: var(--green-dark); color: #c8e6c9; text-align: center;
+  padding: 1.5rem 1rem; font-size: .82rem; margin-top: 1rem;
+}
+.footer-links { display: flex; justify-content: center; gap: 1.25rem; flex-wrap: wrap; margin-bottom: .5rem; }
+.footer-links a { color: #a5d6a7; text-decoration: none; }
+.footer-links a:hover { color: #fff; }
+
+/* ─── RESPONSIVE ──────────────────────────────────────────────── */
+@media (max-width: 700px) {
+  .dash-grid { grid-template-columns: 1fr; padding: .75rem; }
+  .ctrl-bar { padding: .6rem .75rem; }
+  #loc-select { min-width: 0; flex: 1; }
+  .mode-tabs { width: 100%; justify-content: space-between; }
+  .mode-btn { flex: 1; font-size: .78rem; padding: .4rem .5rem; }
+  .score-ring { font-size: 2.5rem; width: 90px; height: 90px; }
+  .score-label { font-size: 1.3rem; }
+  nav ul { display: none; }
+}
