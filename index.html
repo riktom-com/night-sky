@@ -158,14 +158,24 @@
   <div class="card" id="weather-card"></div>
   <div class="card" id="planets-card"></div>
   <div class="card card-full sky-card" id="skymap-card">
-    <div class="card-title sky-title">🌌 Sky Map — Live Now</div>
-    <canvas id="skymap" aria-label="Current sky view from your location"></canvas>
+    <div class="sky-head">
+      <div class="card-title sky-title">🌌 Sky Map</div>
+      <div class="sky-modes" role="group" aria-label="Sky map time">
+        <button type="button" class="sky-mode active" data-skymode="now">Now</button>
+        <button type="button" class="sky-mode" data-skymode="tonight">Tonight</button>
+      </div>
+    </div>
+    <div class="sky-canvas-wrap">
+      <canvas id="skymap" aria-label="Sky view from your location"></canvas>
+      <div id="sky-tooltip" class="sky-tooltip" hidden></div>
+    </div>
+    <div id="sky-daynote" class="sky-daynote" hidden>☀ The Sun is up right now. <button type="button" class="sky-daybtn" data-skymode="tonight">Show tonight&rsquo;s sky &rarr;</button></div>
     <div class="sky-legend">
       <span><span class="dot moon-dot"></span>Moon</span>
       <span><span class="dot sun-dot"></span>Sun</span>
       <span><span class="dot venus-dot"></span>Planets</span>
       <span><span class="dot star-dot"></span>Stars</span>
-      <span class="muted">Edge = horizon · Center = zenith · N at top, E at left</span>
+      <span class="muted">Tap an object to identify it &middot; Edge = horizon, center = overhead</span>
     </div>
   </div>
   <div class="card card-full" id="meteors-card"></div>

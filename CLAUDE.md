@@ -16,7 +16,7 @@ Plus:
 - Tonight's schedule (sunset, civil/nautical/astronomical twilight, moonrise/set, sunrise)
 - Moon phase + illumination % + current altitude
 - Visible planets tonight (Mercury, Venus, Mars, Jupiter, Saturn) with alt/azimuth
-- **Canvas sky map** — live stereographic projection from zenith, ~30 brightest stars, Big Dipper + Orion asterism lines, all 5 naked-eye planets, moon (with phase shading), sun (if up)
+- **Canvas sky map** — polished all-sky dome (zenith center, horizon rim, N up / E left), centered square (≤560px). ~120 bright stars colored by spectral class with glow, **22 constellation asterisms** with name labels, all 5 naked-eye planets, moon (phase-shaded), sun (if up), twilight horizon glow. **Now / Tonight toggle** (default Now; when the Sun is up it lightens to a daytime sky + shows a "show tonight's sky" prompt, since a dark "live" map by day was confusing). **Tap an object to identify it** (name + alt/az tooltip). Star data + asterisms live in `js/astro.js` (`STARS` = `[name,RA,Dec,mag,color]`, `CONSTELLATIONS` keyed by star name, `STAR_LABELS`); renderer is `renderSkyMap()` in `js/app.js`. No external libs (Stellarium Web was evaluated but needs an emscripten build + ~2MB WASM + AGPL — rejected to keep the app static/lightweight/AdSense-safe).
 - Next 4 upcoming meteor showers with peak dates + ZHR rates
 - 8 curated Georgia dark-sky sites sorted by distance, with Bortle ratings
 

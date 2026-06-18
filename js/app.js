@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   loadAll();
+  setupSkyControls();
   // Refresh sky map every minute, full data every 10 minutes
   setInterval(() => { S.now = new Date(); renderAll(); }, 60_000);
   setInterval(() => loadAll(), 10 * 60 * 1000);
@@ -484,156 +485,238 @@ function haversine(lat1, lon1, lat2, lon2) {
 }
 
 /* ── Sky map (canvas) ─────────────────────────────────────────────── */
+let skyMode = 'now';        // 'now' | 'tonight'
+let skyHits = [];           // [{x,y,r,label,sub}] for tap-to-identify
+
+function skyTonightTime() {
+  const lat = S.loc.lat, lon = S.loc.lon;
+  const astro = ASTRO.sunEventLocal(S.now, lat, lon, -18);
+  if (astro.set) return astro.set;
+  const naut = ASTRO.sunEventLocal(S.now, lat, lon, -12);
+  if (naut.set) return naut.set;
+  const sun = ASTRO.sunEventLocal(S.now, lat, lon, -0.83);
+  if (sun.set) return new Date(sun.set.getTime() + 90 * 60000);
+  return S.now;
+}
+
+function hexA(hex, a) {
+  const h = hex.replace('#', '');
+  const f = h.length === 3 ? h.split('').map(c => c + c).join('') : h;
+  const n = parseInt(f, 16);
+  return `rgba(${(n >> 16) & 255},${(n >> 8) & 255},${n & 255},${a})`;
+}
+function altAzStr(alt, az) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  const d = dirs[Math.round(((az % 360) / 45)) % 8];
+  return `${Math.round(alt)}° up · ${d}`;
+}
+
 function renderSkyMap() {
   const cv = document.getElementById('skymap');
   if (!cv) return;
   const ctx = cv.getContext('2d');
   const wrap = cv.parentElement;
-  const W = wrap.clientWidth;
-  const H = Math.min(W, 520);
+  // Display size is driven by CSS (width:100% + aspect-ratio:1/1); we only set the
+  // backing store. Reading clientWidth (not an inline px width) avoids a feedback loop.
+  const W = Math.round(cv.clientWidth || wrap.clientWidth);
+  const H = W;   // square dome
+  if (!W) return;
   cv.width = W * devicePixelRatio;
   cv.height = H * devicePixelRatio;
-  cv.style.width = W + 'px';
-  cv.style.height = H + 'px';
-  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  ctx.clearRect(0, 0, W, H);
+
+  const tip = document.getElementById('sky-tooltip');
+  if (tip) tip.hidden = true;
 
   const cx = W / 2, cy = H / 2;
-  const R  = Math.min(W, H) / 2 - 24;
+  const R = Math.min(W, H) / 2 - 22;
 
-  // Background gradient
-  const bg = ctx.createRadialGradient(cx, cy, R * 0.3, cx, cy, R);
-  bg.addColorStop(0, '#0a1428');
-  bg.addColorStop(1, '#020611');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
+  const mapTime = (skyMode === 'tonight') ? skyTonightTime() : S.now;
+  const jd = ASTRO.julianDay(mapTime);
+  const lstHr = ASTRO.lst(jd, S.loc.lon);
+  const sunRD = ASTRO.sunRaDec(jd);
+  const sunAA = ASTRO.eqToAltAz(sunRD.ra, sunRD.dec, S.loc.lat, lstHr);
+  const sunAlt = sunAA.alt;
+  const isTwi = sunAlt <= -0.83 && sunAlt > -18;
 
-  // Horizon circle
-  ctx.strokeStyle = '#1a3a5f';
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.arc(cx, cy, R, 0, Math.PI * 2);
-  ctx.stroke();
-  // Alt grid (30°, 60°)
-  ctx.strokeStyle = '#142a44';
-  ctx.lineWidth = 1;
-  [60, 30].forEach(a => {
-    const r = (90 - a) / 90 * R;
-    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke();
-  });
+  const dayNote = document.getElementById('sky-daynote');
+  if (dayNote) dayNote.hidden = !(skyMode === 'now' && sunAlt > 0);
 
-  // Cardinal labels
-  ctx.fillStyle = '#5d8fbf';
-  ctx.font = 'bold 14px -apple-system, system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText('N', cx, cy - R - 6);
-  ctx.fillText('S', cx, cy + R + 16);
-  ctx.fillText('E', cx - R - 12, cy + 5);
-  ctx.fillText('W', cx + R + 12, cy + 5);
+  // Background: darkness scales with how far the Sun is below the horizon
+  const dark = Math.max(0, Math.min(1, (-sunAlt) / 12));
+  const mix = (a, b, t) => [0,1,2].map(i => Math.round(a[i] + (b[i] - a[i]) * t));
+  const cen = mix([126,168,214], [10,20,40], dark);
+  const edg = mix([150,186,224], [2,6,17], dark);
+  const bg = ctx.createRadialGradient(cx, cy, R * 0.25, cx, cy, R);
+  bg.addColorStop(0, `rgb(${cen[0]},${cen[1]},${cen[2]})`);
+  bg.addColorStop(1, `rgb(${edg[0]},${edg[1]},${edg[2]})`);
+  ctx.save();
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.clip();
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, W, H);
 
-  // Use current time for sky map
-  const jd  = ASTRO.julianDay(S.now);
-  const lst = ASTRO.lst(jd, S.loc.lon);
+  if (isTwi) {
+    const glow = Math.max(0, 1 - (-sunAlt) / 18);
+    const ga = sunAA.az * Math.PI / 180;
+    const gx = cx - R * Math.sin(ga) * 0.96, gy = cy - R * Math.cos(ga) * 0.96;
+    const gg = ctx.createRadialGradient(gx, gy, 0, gx, gy, R * 0.9);
+    gg.addColorStop(0, `rgba(255,150,60,${0.30 * glow})`);
+    gg.addColorStop(1, 'rgba(255,150,60,0)');
+    ctx.fillStyle = gg; ctx.fillRect(0, 0, W, H);
+  }
+  ctx.restore();
+
   const project = (alt, az) => {
     if (alt < 0) return null;
     const r = (90 - alt) / 90 * R;
-    const az_r = az * Math.PI / 180;
-    return { x: cx - r * Math.sin(az_r), y: cy - r * Math.cos(az_r) };
+    const a = az * Math.PI / 180;
+    return { x: cx - r * Math.sin(a), y: cy - r * Math.cos(a) };
   };
 
-  // Compute alt/az for stars
-  const starPos = ASTRO.STARS.map(([name, ra, dec, mag]) => {
-    const aa = ASTRO.eqToAltAz(ra, dec, S.loc.lat, lst);
-    return { name, mag, ...aa, p: project(aa.alt, aa.az) };
-  });
+  // Grid + cardinal letters + azimuth ticks
+  ctx.strokeStyle = 'rgba(90,143,191,0.16)'; ctx.lineWidth = 1;
+  [60, 30].forEach(a => { const r = (90 - a) / 90 * R; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke(); });
+  ctx.strokeStyle = 'rgba(90,143,191,0.32)'; ctx.lineWidth = 1.5;
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.strokeStyle = 'rgba(90,143,191,0.30)'; ctx.lineWidth = 1;
+  for (let az = 0; az < 360; az += 30) {
+    const a = az * Math.PI / 180, len = (az % 90 === 0) ? 10 : 6;
+    ctx.beginPath();
+    ctx.moveTo(cx - R * Math.sin(a), cy - R * Math.cos(a));
+    ctx.lineTo(cx - (R - len) * Math.sin(a), cy - (R - len) * Math.cos(a));
+    ctx.stroke();
+  }
+  ctx.fillStyle = '#7fb0df'; ctx.font = 'bold 14px -apple-system, system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText('N', cx, cy - R - 11);
+  ctx.fillText('S', cx, cy + R + 12);
+  ctx.fillText('E', cx - R - 12, cy);
+  ctx.fillText('W', cx + R + 12, cy);
 
-  // Constellation lines (only if both endpoints above horizon)
-  ctx.strokeStyle = 'rgba(120, 180, 240, 0.35)';
-  ctx.lineWidth = 1;
+  skyHits = [];
+  const star = ASTRO.STARS.map(([name, ra, dec, mag, color]) => {
+    const aa = ASTRO.eqToAltAz(ra, dec, S.loc.lat, lstHr);
+    return { name, mag, color: color || '#ffffff', alt: aa.alt, az: aa.az, p: project(aa.alt, aa.az) };
+  });
+  const byName = {}; star.forEach(s => { byName[s.name] = s; });
+
+  // Constellation lines + name at centroid
+  ctx.strokeStyle = `rgba(130,180,240,${0.12 + 0.20 * dark})`; ctx.lineWidth = 1;
   ASTRO.CONSTELLATIONS.forEach(con => {
     con.lines.forEach(([a, b]) => {
-      const A = starPos[a], B = starPos[b];
-      if (A?.p && B?.p) {
-        ctx.beginPath();
-        ctx.moveTo(A.p.x, A.p.y); ctx.lineTo(B.p.x, B.p.y);
-        ctx.stroke();
-      }
+      const A = byName[a], B = byName[b];
+      if (A && B && A.p && B.p) { ctx.beginPath(); ctx.moveTo(A.p.x, A.p.y); ctx.lineTo(B.p.x, B.p.y); ctx.stroke(); }
     });
+    const pts = [...new Set(con.lines.flat())].map(n => byName[n]).filter(s => s && s.p);
+    if (pts.length >= 2) {
+      const mx = pts.reduce((s, p) => s + p.p.x, 0) / pts.length;
+      const my = pts.reduce((s, p) => s + p.p.y, 0) / pts.length;
+      ctx.fillStyle = `rgba(150,185,230,${0.05 + 0.40 * dark})`;
+      ctx.font = '10px -apple-system, system-ui, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(con.name.toUpperCase(), mx, my);
+    }
   });
 
   // Stars
-  starPos.forEach(s => {
+  const starDim = sunAlt > 0 ? 0.45 : 1;
+  star.forEach(s => {
     if (!s.p) return;
-    const size = Math.max(1.2, 5 - s.mag);
-    ctx.fillStyle = '#ffffff';
-    ctx.globalAlpha = Math.max(0.35, 1 - s.mag * 0.15);
-    ctx.beginPath();
-    ctx.arc(s.p.x, s.p.y, size, 0, Math.PI * 2);
-    ctx.fill();
+    const size = Math.max(1.1, 4.4 - s.mag * 0.9);
+    if (s.mag < 1.6) {
+      const g = ctx.createRadialGradient(s.p.x, s.p.y, 0, s.p.x, s.p.y, size * 3.2);
+      g.addColorStop(0, hexA(s.color, 0.5 * starDim)); g.addColorStop(1, hexA(s.color, 0));
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(s.p.x, s.p.y, size * 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = Math.max(0.3, 1 - s.mag * 0.14) * starDim;
+    ctx.fillStyle = s.color;
+    ctx.beginPath(); ctx.arc(s.p.x, s.p.y, size, 0, Math.PI * 2); ctx.fill();
     ctx.globalAlpha = 1;
-    if (s.mag < 1.5) {
-      ctx.fillStyle = 'rgba(200,220,255,0.85)';
+    skyHits.push({ x: s.p.x, y: s.p.y, r: Math.max(8, size + 5), label: s.name, sub: altAzStr(s.alt, s.az) });
+    if (ASTRO.STAR_LABELS.has(s.name)) {
+      ctx.fillStyle = `rgba(210,226,255,${0.45 + 0.45 * starDim})`;
       ctx.font = '10px -apple-system, system-ui, sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(s.name, s.p.x + size + 3, s.p.y + 3);
+      ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+      ctx.fillText(s.name, s.p.x + size + 4, s.p.y);
     }
   });
 
   // Planets
   ['mercury','venus','mars','jupiter','saturn'].forEach(name => {
     const rd = ASTRO.planetRaDec(name, jd);
-    const aa = ASTRO.eqToAltAz(rd.ra, rd.dec, S.loc.lat, lst);
-    const p = project(aa.alt, aa.az);
-    if (!p) return;
+    const aa = ASTRO.eqToAltAz(rd.ra, rd.dec, S.loc.lat, lstHr);
+    const p = project(aa.alt, aa.az); if (!p) return;
     const info = ASTRO.PLANET_INFO[name];
-    ctx.fillStyle = info.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, 5.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(0,0,0,0.6)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-    ctx.fillStyle = '#ffe082';
-    ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText(info.name, p.x + 8, p.y + 4);
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 11);
+    g.addColorStop(0, hexA(info.color, 0.55)); g.addColorStop(1, hexA(info.color, 0));
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, 11, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = info.color; ctx.beginPath(); ctx.arc(p.x, p.y, 5, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffe082'; ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(info.name, p.x + 8, p.y);
+    skyHits.push({ x: p.x, y: p.y, r: 12, label: info.name, sub: altAzStr(aa.alt, aa.az) });
   });
 
-  // Moon
+  // Moon (with phase)
   const moonRD = ASTRO.moonRaDec(jd);
-  const moonAA = ASTRO.eqToAltAz(moonRD.ra, moonRD.dec, S.loc.lat, lst);
+  const moonAA = ASTRO.eqToAltAz(moonRD.ra, moonRD.dec, S.loc.lat, lstHr);
   const mp = project(moonAA.alt, moonAA.az);
   if (mp) {
     const ph = ASTRO.moonPhase(jd);
-    ctx.fillStyle = '#fff8e1';
-    ctx.beginPath();
-    ctx.arc(mp.x, mp.y, 8, 0, Math.PI * 2);
-    ctx.fill();
-    // Phase shadow
-    ctx.fillStyle = '#0a1428';
-    ctx.beginPath();
+    ctx.fillStyle = '#fff8e1'; ctx.beginPath(); ctx.arc(mp.x, mp.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(8,14,28,0.92)';
     const k = (1 - 2 * ph.illum / 100);
-    ctx.ellipse(mp.x, mp.y, 8 * Math.abs(k), 8, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = '#ffeb3b';
-    ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
-    ctx.fillText('Moon', mp.x + 11, mp.y + 4);
+    ctx.beginPath(); ctx.ellipse(mp.x, mp.y, 9 * Math.abs(k), 9, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffeb3b'; ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('Moon', mp.x + 12, mp.y);
+    skyHits.push({ x: mp.x, y: mp.y, r: 12, label: `Moon · ${ph.illum}% lit`, sub: altAzStr(moonAA.alt, moonAA.az) });
   }
 
-  // Sun (if above horizon, with warning)
-  const sunRD = ASTRO.sunRaDec(jd);
-  const sunAA = ASTRO.eqToAltAz(sunRD.ra, sunRD.dec, S.loc.lat, lst);
+  // Sun (only when above the horizon)
   const sp = project(sunAA.alt, sunAA.az);
   if (sp) {
-    ctx.fillStyle = '#ffeb3b';
-    ctx.beginPath();
-    ctx.arc(sp.x, sp.y, 10, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = '#ff9800';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    ctx.fillStyle = '#fff176';
-    ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
-    ctx.fillText('☀ Sun', sp.x + 13, sp.y + 4);
+    const g = ctx.createRadialGradient(sp.x, sp.y, 0, sp.x, sp.y, 18);
+    g.addColorStop(0, 'rgba(255,213,79,0.85)'); g.addColorStop(1, 'rgba(255,213,79,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(sp.x, sp.y, 18, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = '#ffd54f'; ctx.beginPath(); ctx.arc(sp.x, sp.y, 9, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = '#ff9800'; ctx.lineWidth = 2; ctx.stroke();
+    ctx.fillStyle = '#5b4a00'; ctx.font = 'bold 11px -apple-system, system-ui, sans-serif';
+    ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText('Sun', sp.x + 12, sp.y);
+    skyHits.push({ x: sp.x, y: sp.y, r: 14, label: 'Sun', sub: altAzStr(sunAA.alt, sunAA.az) });
+  }
+}
+
+function setupSkyControls() {
+  document.querySelectorAll('[data-skymode]').forEach(b => {
+    b.addEventListener('click', () => {
+      skyMode = b.dataset.skymode;
+      document.querySelectorAll('.sky-mode').forEach(x => x.classList.toggle('active', x.dataset.skymode === skyMode));
+      renderSkyMap();
+    });
+  });
+  const cv = document.getElementById('skymap');
+  if (cv) cv.addEventListener('click', onSkyTap);
+}
+
+function onSkyTap(e) {
+  const cv = e.currentTarget, tip = document.getElementById('sky-tooltip');
+  if (!tip) return;
+  const rect = cv.getBoundingClientRect();
+  const x = e.clientX - rect.left, y = e.clientY - rect.top;
+  let best = null, bestD = Infinity;
+  skyHits.forEach(h => {
+    const d = Math.hypot(h.x - x, h.y - y);
+    if (d <= h.r && d < bestD) { best = h; bestD = d; }
+  });
+  if (best) {
+    tip.innerHTML = `<b>${best.label}</b><br>${best.sub}`;
+    tip.style.left = best.x + 'px';
+    tip.style.top = best.y + 'px';
+    tip.hidden = false;
+  } else {
+    tip.hidden = true;
   }
 }
 
